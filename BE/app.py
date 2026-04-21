@@ -2,6 +2,7 @@ import os
 import bcrypt
 import requests
 import mysql.connector
+from mysql.connector import pooling
 from datetime import date, timedelta
 from flask import Flask, render_template, request, jsonify, session, g
 from flask_cors import CORS
@@ -18,11 +19,23 @@ app.secret_key = os.environ.get('SECRET_KEY') # Cors configuration to allow cook
 IS_RENDER = os.environ.get('RENDER') == 'true'
 DB_CONFIG = {
     'host': os.environ.get('DB_HOST', 'localhost'),
+    'database': os.environ.get('DB_NAME', 'food_tracker'),
     'user': os.environ.get('DB_USER', 'root'),
     'password': os.environ.get('DB_PASSWORD'),
-    'database': os.environ.get('DB_NAME', 'food_tracker'),
-    'ssl_ca': os.environ.get('DB_SSL_CA') # Path to Aiven CA cert
+    'port': int(os.environ.get('DB_PORT')
+    'ssl_ca': '/etc/secrets/ca.pem' 
 }
+
+# Connection Pool to prevent memory leaks from connection churn
+db_pool = mysql.connector.pooling.MySQLConnectionPool(
+    pool_name="hungry_pool",
+    pool_size=5,  # Small size is better for Render's limited RAM
+    pool_reset_session=True,
+    **{k: v for k, v in DB_CONFIG.items() if v is not None}
+)
+
+# Persistent session for external API calls to reuse TCP connections
+http_session = requests.Session()
 
 # New API Configuration
 NEW_API_URL = os.environ.get('NEW_API_URL')
@@ -80,8 +93,7 @@ def get_db():
 
     if 'db' not in g:
         try:
-            active_config = {k: v for k, v in DB_CONFIG.items() if v is not None} # Removes and does not check values that are not defined
-            g.db = mysql.connector.connect(**active_config)
+            g.db = db_pool.get_connection()
         except mysql.connector.Error as err:
             app.logger.error(f"Failed to connect to Database: {err}")
             return jsonify({"status": "error", "message": "Database connection failed"}), 500
@@ -180,7 +192,7 @@ def get_food_by_name(food_item_name):
     }
 
     try:
-        response = requests.get(api_url, params=params, timeout=5)
+        response = http_session.get(api_url, params=params, timeout=5)
         response.raise_for_status()  # Raise an error for bad responses
         return response.json()
     except requests.exceptions.RequestException as e:
@@ -481,10 +493,6 @@ def get_daily_totals():
         return jsonify({'status': 'error', 'message': 'Internal server error'})
 
 if __name__ == "__main__":
-    if IS_RENDER:
-        port = int(os.environ.get('PORT', 5000))
-        app.run(host='0.0.0.0', port=port)
-    else:
-        # Local Dev
-        print("\n --- Dev MODE on: https://localhost:5000 --- \n")
+    # This Block only run in local Dev 
+        print("\n --- DEV MODE on: https://localhost:5000 --- \n")
         app.run(host='0.0.0.0', port=5000, debug=True, ssl_context='adhoc')
