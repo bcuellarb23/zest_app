@@ -3,10 +3,19 @@
 {% block header %}
 <div class="logo-index">
     <a href="{{ url_for('index') }}">
-        <img src="{{ img_path }}logo.svg" alt="Zest Logo">
+        <img src="{{ img_path }}logo.svg" alt="Zest Logo" class="logo-image">
     </a>
-    <img src="{{ img_path }}arrowDown.svg" id="scrollArrow" class="scroll-arrow" alt="Scroll down">
+    <nav class="dropdown-menu">
+		<img src="{{ img_path }}profile.jpg" alt="Menu" class="profile-image">
+		
+		<div class="dropdown-content">
+			<button onclick="location.href='home'" id="homeBtn">Home</button>
+			<button onclick="location.href='login'" id="loginBtn">Login</button>
+            <button onclick="location.href='profile'" id="signupBtn">Profile</button>
+		</div>
+	</nav>
 </div>
+    <img src="{{ img_path }}arrowDown.svg" id="scrollArrow" class="scroll-arrow" alt="Scroll down">
 {% endblock %}
 {% block content %}
 <main class="main-index">
@@ -47,7 +56,7 @@
         </div>
     </section>
     <section class="results">
-        <h4>Food Nutrition Information</h4>
+        <h5>Food Nutrition Information</h5>
         <div id="results"></div>
         <template id="result-template">
             <div class="food-card">
