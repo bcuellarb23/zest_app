@@ -17,20 +17,29 @@ app.secret_key = os.environ.get('SECRET_KEY') # Cors configuration to allow cook
 
 # Environment Detection
 IS_RENDER = os.environ.get('RENDER') == 'true'
+DB_PORT = int(os.environ.get('DB_PORT'))
+
 DB_CONFIG = {
     'host': os.environ.get('DB_HOST', 'localhost'),
     'user': os.environ.get('DB_USER', 'root'),
     'password': os.environ.get('DB_PASSWORD'),
     'database': os.environ.get('DB_NAME', 'food_tracker'),
-    'ssl_ca': os.environ.get('DB_SSL_CA') # Path to Aiven CA cert
+    'port': DB_PORT
 }
 
-# Connection Pool to prevent memory leaks from connection churn
-db_pool = mysql.connector.pooling.MySQLConnectionPool(
+CA_PATH = "/etc/secrets/ca.pem" if IS_RENDER else "ca.pem"
+
+try:
+    db_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="hungry_pool",
     pool_size=5,  # Small size is better for Render's limited RAM
-    **{k: v for k, v in DB_CONFIG.items() if v is not None}
+    ssl_ca=CA_PATH,
+    ssl_verify_cert=True,
+            **{k: v for k, v in DB_CONFIG.items() if v is not None}
 )
+
+except mysql.connector.Error as err:
+    print(f"Error creating conection pool: {err}")
 
 # Persistent session for external API calls to reuse TCP connections
 http_session = requests.Session()
@@ -47,7 +56,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Lax', # Necessary for cookies to work in modern browsers on localhost
     SESSION_COOKIE_SECURE=True,    # Set to True because we are using HTTPS
     SESSION_COOKIE_HTTPONLY=True,  # Prevents JavaScript from reading the cookie (Security)
-    PERMANENT_SESSION_LIFETIME=timedelta(minutes=15) # Keeps the session open for 15 minutes
+    PERMANENT_SESSION_LIFETIME=timedelta(days=7) # Keeps the session open for 15 minutes
 )
 
 # Routes definition
@@ -491,10 +500,6 @@ def get_daily_totals():
         return jsonify({'status': 'error', 'message': 'Internal server error'})
 
 if __name__ == "__main__":
-    if IS_RENDER:
-        port = int(os.environ.get('PORT', 5000))
-        app.run(host='0.0.0.0', port=port)
-    else:
         # Local Dev
         print("\n --- Dev MODE on: https://localhost:5000 --- \n")
         app.run(host='0.0.0.0', port=5000, debug=True, ssl_context='adhoc')
