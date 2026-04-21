@@ -1,12 +1,11 @@
 {% extends "base.html" %}
 
 {% block content %}
-<body>
 <main>
     <section class="profile-hub">
         <div class="profile-pic-container">
             <img src="{{ img_path }}profile.jpg" alt="Upload your picture" class="profile-pic">
-            <div class="user-name" id="user-name-link">Guest Name</div>
+            <h6 class="user-name" id="user-name-link">Guest Name</h6>
         </div>
         <div class="day-card">
             <div class="day-header" id="today-date">Day 00/00/00</div>
@@ -73,4 +72,3 @@
 <script src="{{url_for('static', filename='config.js') }}"></script>
 <script src="{{url_for('static', filename='home.js') }}"></script>
 {% endblock %}
-</body>

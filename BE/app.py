@@ -19,18 +19,16 @@ app.secret_key = os.environ.get('SECRET_KEY') # Cors configuration to allow cook
 IS_RENDER = os.environ.get('RENDER') == 'true'
 DB_CONFIG = {
     'host': os.environ.get('DB_HOST', 'localhost'),
-    'database': os.environ.get('DB_NAME', 'food_tracker'),
     'user': os.environ.get('DB_USER', 'root'),
     'password': os.environ.get('DB_PASSWORD'),
-    'port': int(os.environ.get('DB_PORT')),
-    'ssl_ca': '/etc/secrets/ca.pem' 
+    'database': os.environ.get('DB_NAME', 'food_tracker'),
+    'ssl_ca': os.environ.get('DB_SSL_CA') # Path to Aiven CA cert
 }
 
 # Connection Pool to prevent memory leaks from connection churn
 db_pool = mysql.connector.pooling.MySQLConnectionPool(
     pool_name="hungry_pool",
     pool_size=5,  # Small size is better for Render's limited RAM
-    pool_reset_session=True,
     **{k: v for k, v in DB_CONFIG.items() if v is not None}
 )
 
@@ -493,6 +491,10 @@ def get_daily_totals():
         return jsonify({'status': 'error', 'message': 'Internal server error'})
 
 if __name__ == "__main__":
-    # This Block only run in local Dev 
-        print("\n --- DEV MODE on: https://localhost:5000 --- \n")
+    if IS_RENDER:
+        port = int(os.environ.get('PORT', 5000))
+        app.run(host='0.0.0.0', port=port)
+    else:
+        # Local Dev
+        print("\n --- Dev MODE on: https://localhost:5000 --- \n")
         app.run(host='0.0.0.0', port=5000, debug=True, ssl_context='adhoc')

@@ -13,26 +13,23 @@
 
 {% block header %}
 <header>
-	<div class="logo">
+	<div class="logo-index scrolled" style="--header-height: 8vh; --logo-width: 150px; --logo-top-padding: 0vh;"> 
 		<a href="{{ url_for('index') }}">
-			<img src="{{ img_path }}logo.svg" alt="Hungry Logo">
+			<img src="{{ img_path }}logo.svg" alt="Hungry Logo" class="logo-image">
 		</a>
-	</div>
-	<nav class="dropdown-menu">
+		<nav class="dropdown-menu dropdown-menu-visible">
 		<img src="{{ img_path }}profile.jpg" alt="Menu" class="profile-image">
-		
 		<div class="dropdown-content">
 			<button onclick="location.href='home'" id="homeBtn">Home</button>
 			<button onclick="location.href='login'" id="loginBtn">Login</button>
             <button onclick="location.href='profile'" id="signupBtn">Profile</button>
 		</div>
 	</nav>
+	</div>
 </header>
 {% endblock %}
 
 {% block content %}
-<body>
-</body>
 {% endblock %}
 
 {% block footer  %}
