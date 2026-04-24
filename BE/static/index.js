@@ -37,6 +37,18 @@ document.addEventListener('DOMContentLoaded', async() => {
             }
         });
     }
+
+    const dropdown = document.querySelector('.dropdown-menu');
+
+    dropdown.addEventListener('click', function(event) {
+        event.stopPropagation();
+        this.classList.toggle('is-active');
+    });
+
+    document.addEventListener('click', function() {
+        dropdown.classList.remove('is-active');
+    });
+    
     const searchButton = document.getElementById('searchButton');
     const foodInput = document.getElementById('foodInput');
     const resultsDiv = document.getElementById('results');
@@ -67,11 +79,11 @@ document.addEventListener('DOMContentLoaded', async() => {
                 products.forEach(product => {
                     const clone = template.content.cloneNode(true);
 
-                    clone.querySelector('h2').textContent = product.product_name;
-                    clone.querySelector('.p-cals').textContent = `Calories: ${product.calories} kcal`;
-                    clone.querySelector('.p-prot').textContent = `Proteins: ${product.proteins}g`;
-                    clone.querySelector('.p-carbs').textContent = `Carbohydrates: ${product.carbohydrates}g`;
-                    clone.querySelector('.p-fats').textContent = `Fats: ${product.fat}g`;
+                    clone.querySelector('.p-name').textContent = product.product_name;
+                    clone.querySelector('.p-cals').innerHTML = `Calories: <br>${product.calories} kcal`;
+                    clone.querySelector('.p-prot').innerHTML = `Proteins: <br>${product.proteins}g`;
+                    clone.querySelector('.p-carbs').innerHTML = `Carbs: <br>${product.carbohydrates}g`;
+                    clone.querySelector('.p-fats').innerHTML = `Fats: <br>${product.fat}g`;
 
                     resultsDiv.appendChild(clone);
                 });

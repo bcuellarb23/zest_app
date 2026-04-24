@@ -29,17 +29,24 @@ DB_CONFIG = {
 
 CA_PATH = "/etc/secrets/ca.pem" if IS_RENDER else "ca.pem"
 
+pool_kwargs = {
+    'pool_name': "hungry_pool",
+    'pool_size': 3,
+    **{k: v for k, v in DB_CONFIG.items() if v is not None}
+}
+
+if IS_RENDER or DB_CONFIG['host'] != 'localhost':
+    pool_kwargs['ssl_ca'] = CA_PATH
+    pool_kwargs['ssl_verify_cert'] = True
+else:
+    pool_kwargs['ssl_disabled'] = True
+
 try:
-    db_pool = mysql.connector.pooling.MySQLConnectionPool(
-    pool_name="hungry_pool",
-    pool_size=5,  # Small size is better for Render's limited RAM
-    ssl_ca=CA_PATH,
-    ssl_verify_cert=True,
-            **{k: v for k, v in DB_CONFIG.items() if v is not None}
-)
+    db_pool = mysql.connector.pooling.MySQLConnectionPool(**pool_kwargs)
+    print("Successfully created connection pool!")
 
 except mysql.connector.Error as err:
-    print(f"Error creating conection pool: {err}")
+    raise Exception(f"DATABASE CONNECTION FAILED: {err}")
 
 # Persistent session for external API calls to reuse TCP connections
 http_session = requests.Session()

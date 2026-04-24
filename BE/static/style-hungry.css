@@ -12,6 +12,10 @@
     --bg-red: rgb(275, 170, 170, 0.3);
     --bg-green: rgb(128, 255, 179, 0.3);
     --bg-yellow: rgb(255, 212, 42, 0.3);
+    --p-blue: rgb(0, 85, 212);
+    --p-red: rgb(255, 0, 0);
+    --p-green: rgb(0, 170, 68);
+    --p-yellow: rgb(255, 175, 0);
     --border-gray: rgb(204, 204, 204);
     --header-bg: rgb(0, 0, 0);
     --text-white: rgb(255, 255, 255);
@@ -83,10 +87,6 @@ p {
     opacity: 1;
 }
 
-.p-bold {
-    font-weigh: 600;
-    opacity: 0.9;
-}
 
 ul {
     list-style-type: none;
@@ -122,7 +122,7 @@ li::before {
     color: black;
 }
 
-a { textdecoration: none; }
+a { text-decoration: none; }
 a img {	transition: transform 0.2s; }
 
 
@@ -229,13 +229,15 @@ footer a:hover {
     text-align: center;
 }
 .results {
-    max-height: 80rem;
+    max-height: 20rem;
     overflow-y: auto;
+}
+
+#results {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 5px;
-    }
-
+}
 
 /* Header */
 .dropdown-menu {
@@ -275,7 +277,7 @@ footer a:hover {
 	padding: 1rem;
 }
 .dropdown-menu:hover .dropdown-content,
-.dropdown-menu.active .dropdown-content {
+.dropdown-menu.is-active .dropdown-content {
 	opacity: 1;
 	transform: translateY(0);
 	pointer-events: auto;
@@ -434,9 +436,41 @@ footer a:hover {
 }
 
 .result-box {
+    padding: 5px;
     border: 2px solid var(--border-gray);
     border-radius: 20px;
-    margin: 5px;
+    margin: 2px;
+}
+.p-bold {
+    font-weigh: 600;
+    opacity: 0.9;
+}
+
+.p-name {
+    font-weight: 300;
+    opacity: 90%;
+}
+
+.p-cals {
+    background-color: var(--bg-blue);
+    color: var(--p-blue);
+    opacity: 1;
+}
+.p-prot {
+    background-color: var(--bg-red);
+    color: var(--p-red);
+    opacity: 1;
+}
+
+.p-carbs {
+    background-color: var(--bg-green);
+    color: var(--p-green);
+    opacity: 1;
+}
+.p-fats {
+    background-color: var(--bg-yellow);
+    color: var(--p-yellow);
+    opacity: 1;
 }
 
 button {
@@ -660,7 +694,6 @@ input:focus ~ .label-line-tracker, input:valid ~ .label-line-tracker {
 
 .user-name {
     font-size: 1rem;
-    font-weight: bold;
     font-family: "Namdhinggo", serif;
     font-weight: 400;
     text-align: center;
