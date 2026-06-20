@@ -1,14 +1,18 @@
 import os
-import bcrypt
+import boto3
 import requests
 import mysql.connector
 import cloudinary
 import cloudinary.uploader
+from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
+from botocore.config import Config
 from cloudinary.utils import cloudinary_url
 from mysql.connector import pooling
 from datetime import date, timedelta
-from flask import Flask, render_template, request, jsonify, session, g
+from flask import Flask, render_template, request, jsonify, session, g, redirect
 from flask_cors import CORS
+from services.storage import upload_profile_picture
 from utils import calculate_nutritional_data
 from dotenv import load_dotenv
 
@@ -24,7 +28,7 @@ DB_PORT = int(os.environ.get('DB_PORT'))
 
 DB_CONFIG = {
     'host': os.environ.get('DB_HOST', 'localhost'),
-    'user': os.environ.get('DB_USER', 'root'),
+    'user': os.environ.get('DB_USER'),
     'password': os.environ.get('DB_PASSWORD'),
     'database': os.environ.get('DB_NAME', 'food_tracker'),
     'port': DB_PORT
@@ -74,12 +78,20 @@ http_session = requests.Session()
 NEW_API_URL = os.environ.get('NEW_API_URL')
 NEW_API_KEY = os.environ.get('NEW_API_KEY')
 
-# Cloudinary Confiduration
-cloudinary.config(
-    cloud_name = os.environ.get('CLOUDINARY_NAME'),
-    api_key = os.environ.get('CLOUDINARY_API_KEY'),
-    api_secret = os.environ.get('CLOUDINARY_API_SECRET'),
-    secure=True
+# R2 Confiduration
+R2_CONFIG = {
+    'account_id': os.environ.get('R2_ACCOUNT_ID'),
+    'access_key': os.environ.get('R2_ACCESS_KEY'),
+    'secret_access_key': os.environ.get('R2_SECRET_ACCESS_KEY'),
+    'bucket_name': os.environ.get('R2_BUCKET_NAME')
+}
+
+s3 = boto3.client(
+    "s3", 
+    endpoint_url=f"https://{R2_CONFIG['account_id']}.r2.cloudflarestorage.com",
+    aws_access_key_id = R2_CONFIG['access_key'],
+    aws_secret_access_key = R2_CONFIG['secret_access_key'],
+    config = Config(signature_version = "s3v4"),
 )
 
 # Middleware and security 
@@ -151,11 +163,12 @@ def login_user():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
+    ph = PasswordHasher()
 
     if not email or not password:
         return jsonify({"status": "error", "message": "Email and password are required"}), 400
 
-    
+
     try:
         db = g.db
         with db.cursor(dictionary=True) as cursor: # returns a dictionary instead of a tuple
@@ -163,18 +176,22 @@ def login_user():
             sql = "SELECT user_id, password_hash FROM login WHERE email = %s"
             cursor.execute(sql, (email,))
             user = cursor.fetchone()
-            
+
         # Check if the user exists and the password is correct
-        if user and bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
-            # Login successful. Store the user_id in the session
-            session.permanent = True
-            session['user_id'] = user['user_id']
-            session['user_email'] = email
-            return jsonify({"status": "success", "message": "Login successful"}), 200
+        if user:
+            try:
+                ph.verify(user['password_hash'], password)
+                # Login successful. Store the user_id in the session
+                session.permanent = True
+                session['user_id'] = user['user_id']
+                session['user_email'] = email
+                return jsonify({"status": "success", "message": "Login successful"}), 200
+            except VerifyMismatchError:
+                return jsonify({"status": "error", "message": "Invalid email or password"}), 401
         else:
-            # User does not exist or password was incorrect
+            # User does not exist
             return jsonify({"status": "error", "message": "Invalid email or password"}), 401
-        
+
     except mysql.connector.Error as err:
         app.logger.error(f"database error during login for {email}: {err}")
         return jsonify({"status": "error", "message": "Database error occurred"}), 500
@@ -191,21 +208,23 @@ def upload_picture():
 
     file_to_upload = request.files['profile_pic']
 
-    if file_to_upload:
-        try: 
-            upload_result = cloudinary.uploader.upload(file_to_upload, folder="profiles")
-            image_url = upload_result.get('secure_url')
-            user_id = session['user_id']
-            db = get_db()
-            with db.cursor() as cursor:
-                    sql = "UPDATE users SET profile_pic = %s WHERE id = %s"
-                    cursor.execute(sql, (image_url, user_id))
-                    db_commit()
+    if not file_to_upload or file_to_upload.filename == '':
+        return jsonify({"status": "error", "message": "No file selected"}), 400 
+    
+    try: 
+        user_id = session['user_id']
+        image_url = upload_profile_picture(file_to_upload, user_id)
+
+        db = g.db
+        with db.cursor() as cursor:
+            sql = "UPDATE users SET profile_pic = %s WHERE id = %s"
+            cursor.execute(sql, (image_url, user_id))
+            db.commit()
 
             return jsonify({"status": "success", "image_url": image_url}), 200
-            
-        except Exception as e:
-            return jsonify({"status": "error", "message": str(e)}), 500
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/get_info')
 def get_user_info():
@@ -219,7 +238,7 @@ def get_user_info():
         with db.cursor(dictionary=True) as cursor:
             # Fetch basic info and the latest metrics history
             sql = """
-                SELECT u.name, u.age, u.weight, u.height, h.goals, h.activity 
+                SELECT u.name, u.age, u.weight, u.height, u.profile_pic, h.goals, h.activity 
                 FROM users u
                 LEFT JOIN user_metrics_history h ON u.id = h.user_id
                 WHERE u.id = %s
@@ -235,6 +254,7 @@ def get_user_info():
                 "age": user_data['age'],
                 "weight": user_data['weight'],
                 "height": user_data['height'],
+                "profile_pic": user_data['profile_pic'],
                 "goals": user_data['goals'],
                 "activity": user_data['activity']
             }), 200
@@ -423,7 +443,8 @@ def save_profile():
                     return jsonify({"status": "error", "message": "Email already registered"}), 409
 
                 # Hash the password
-                hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                ph = PasswordHasher()
+                hashed_password = ph.hash(password)
 
                 # users table
                 sql_users = """INSERT INTO users (name, age, gender, weight, height)

@@ -38,6 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 document.getElementById('display-goal').textContent = data.goals || '--';
                 document.getElementById('display-activity').textContent = data.activity || '--';
+                
+                if (data.profile_pic) {
+                  document.getElementById('profile-display').src = data.profile_pic;
+                }
 
                 // Fill Edit Form
                 document.getElementById('edit-name').value = data.user_name;

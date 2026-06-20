@@ -1,0 +1,18 @@
+# Python/Virtual Environments
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+instance/
+.pytest_cache/
+
+# Secrets (Do NOT upload these)
+.env
+ca.pem
+*.pem
+
+# OS specific
+.DS_Store
+*.db
+BE/static/images/profile_pics/*

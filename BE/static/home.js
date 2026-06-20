@@ -2,6 +2,8 @@ document.addEventListener('DOMContentLoaded' , async() => {
 
     const userNameDiv = document.querySelector('.user-name');
     
+
+    
         async function fetchUserName() {
         try {
             const response = await fetch(`${API_BASE_URL}/get_info`, {
@@ -12,6 +14,9 @@ document.addEventListener('DOMContentLoaded' , async() => {
             if (data.status === 'success' && userNameDiv) {
                 // User is logged in, display their name
                 userNameDiv.textContent = data.user_name;
+                if (data.profile_pic) {
+                  document.getElementById('profile-display').src = data.profile_pic;
+                }
             } else {
                 // User is NOT logged in, display "Guest" and make it a clickable link
                 console.error('Failed to retrieve username:', data.message);

@@ -33,4 +33,4 @@ def calculate_nutritional_data(goals, totals):
             'carbs_percentage': round((carbs / carbs_goal * 100), 2) if carbs_goal > 0 else 0,
             'fats_percentage': round((fats / fats_goal * 100), 2) if fats_goal > 0 else 0,
         }
-    }
+   }

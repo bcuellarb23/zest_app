@@ -5,7 +5,7 @@
     <section class="profile-hub">
         <!-- Profile Header: Image and Name -->
         <div class="profile-pic-container">
-            <img src="{{ user_info.profile_pic if user_info and user_info.profile_pic else url_for('static', filename='images/profile.jpg') }}" 
+            <img src="{{ user.profile_pic if user and user.profile_pic else url_for('static', filename='images/profile.jpg') }}" 
                 alt="Profile Picture" 
                 class="profile-pic" 
                 id="profile-display"

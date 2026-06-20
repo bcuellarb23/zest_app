@@ -562,7 +562,7 @@ select {
     transition: 0.1s ease;
     z-index: 1111;
     box-sizing: border-box;
-    color: white;
+    color: black;
 
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -862,7 +862,7 @@ circle {
 
 option {
 	background-color: white;
-	color: white;
+	color: black;
 	font-family: var(--font-main);
 }
 
